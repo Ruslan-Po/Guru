@@ -27,19 +27,28 @@ class _MainRoundState extends State<MainRound> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: Container(
-        width: widget.size,
-        height: widget.size,
-        color: const Color.fromARGB(255, 231, 239, 246),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            _currentChild,
-            // сюда можно добавить еще что угодно, например overlay-кнопки
-          ],
+    return Container(
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [const Color(0xFF4D574E), const Color(0xFF956E2F)],
         ),
+        color: const Color.fromARGB(255, 0, 158, 13),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 30,
+            spreadRadius: 8,
+            offset: Offset(15, 15),
+          ),
+        ],
       ),
+      alignment: Alignment.center,
+      child: _currentChild,
     );
   }
 }
