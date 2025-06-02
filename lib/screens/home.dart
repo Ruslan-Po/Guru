@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guru/app_routes.dart';
 import 'package:guru/widgets/main_round.dart';
 import 'package:guru/widgets/voice_round.dart';
 
@@ -7,6 +8,23 @@ class Home extends StatefulWidget {
 
   @override
   State<Home> createState() => _HomeState();
+}
+
+void _navigationByIndex(BuildContext context, int index) {
+  switch (index) {
+    case 0:
+      Navigator.pushNamed(context, Routes.flow);
+      break;
+    case 1:
+      Navigator.pushNamed(context, Routes.poetry);
+      break;
+    case 2:
+      Navigator.pushNamed(context, Routes.silence);
+      break;
+    case 3:
+      Navigator.pushNamed(context, Routes.logic);
+      break;
+  }
 }
 
 class _HomeState extends State<Home> {
@@ -81,6 +99,7 @@ class _HomeState extends State<Home> {
                           _activeIndex = 0;
                         });
                       },
+                      onDoubleTap: () => _navigationByIndex(context, 0),
                       child: AnimatedScale(
                         scale: _activeIndex == 0 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -102,6 +121,7 @@ class _HomeState extends State<Home> {
                           _activeIndex = 1;
                         });
                       },
+                      onDoubleTap: () => _navigationByIndex(context, 1),
                       child: AnimatedScale(
                         scale: _activeIndex == 1 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -109,7 +129,7 @@ class _HomeState extends State<Home> {
                         child: SizedBox(
                           width: _normalSize,
                           height: _normalSize,
-                          child: VoiceRound(voiceTitle: "Poem"),
+                          child: VoiceRound(voiceTitle: "Poetry"),
                         ),
                       ),
                     ),
@@ -123,6 +143,7 @@ class _HomeState extends State<Home> {
                           _activeIndex = 2;
                         });
                       },
+                      onDoubleTap: () => _navigationByIndex(context, 2),
                       child: AnimatedScale(
                         scale: _activeIndex == 2 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -144,6 +165,7 @@ class _HomeState extends State<Home> {
                           _activeIndex = 3;
                         });
                       },
+                      onDoubleTap: () => _navigationByIndex(context, 3),
                       child: AnimatedScale(
                         scale: _activeIndex == 3 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -154,6 +176,16 @@ class _HomeState extends State<Home> {
                           child: VoiceRound(voiceTitle: "Logic"),
                         ),
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 800,
+                    right: 30,
+                    child: GestureDetector(
+                      onTap: () {
+                        _navigationByIndex(context, _activeIndex);
+                      },
+                      child: VoiceRound(voiceTitle: "Confirm"),
                     ),
                   ),
                 ],
