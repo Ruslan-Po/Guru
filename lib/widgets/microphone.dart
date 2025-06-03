@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MicRound extends StatelessWidget {
+  final bool bIsActive = false;
+
   const MicRound({super.key});
 
   @override
@@ -14,11 +16,12 @@ class MicRound extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
-          colors: [Color(0xFF4D574E), Color(0xFF956E2F)],
+          colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
         ),
       ),
       child: Image.asset(
         'assets/images/mic.png',
+        color: Colors.grey,
         width: 90,
         height: 90,
         errorBuilder: (_, __, ___) =>

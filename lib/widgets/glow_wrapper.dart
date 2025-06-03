@@ -114,7 +114,12 @@ class GlowCirclePainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..color = const Color.fromARGB(255, 189, 136, 87).withOpacity(opacity)
+      ..color = const Color.fromARGB(
+        255,
+        189,
+        136,
+        87,
+      ).withValues(alpha: opacity)
       ..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
 

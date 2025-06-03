@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class PoetryVoice extends StatefulWidget {
   const PoetryVoice({super.key});
@@ -11,6 +12,58 @@ class PoetryVoice extends StatefulWidget {
 
 class _PoetryState extends State<PoetryVoice> {
   bool _isRecording = false;
+  late stt.SpeechToText _speech;
+  String _recognizedText = "Нажмите и удерживайте микрофон";
+  bool _speechAvailable = false;
+  String _lastRecognized = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    _speechAvailable = await _speech.initialize(
+      onStatus: _onSpeechStatus,
+      onError: (error) => debugPrint('Speech error: $error'),
+    );
+    setState(() {});
+  }
+
+  void _onSpeechStatus(String status) {
+    debugPrint('Speech status: $status');
+    // Если статус "done" или "notListening", выводим последний текст
+    if (status == 'done' || status == 'notListening') {
+      setState(() {
+        _recognizedText = _lastRecognized.isNotEmpty
+            ? _lastRecognized
+            : "Ничего не распознано";
+      });
+    }
+  }
+
+  void _startListening() async {
+    if (!_speechAvailable) return;
+    await _speech.listen(
+      localeId: 'ru_RU',
+      listenFor: const Duration(seconds: 12), // увеличь при необходимости
+      pauseFor: const Duration(seconds: 5),
+      onResult: (result) {
+        _lastRecognized = result.recognizedWords;
+
+        setState(() {
+          _recognizedText = _lastRecognized;
+        });
+      },
+    );
+  }
+
+  void _stopListening() async {
+    await _speech.stop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -20,16 +73,20 @@ class _PoetryState extends State<PoetryVoice> {
             gradient: LinearGradient(
               begin: Alignment.bottomLeft,
               end: Alignment.topRight,
-              colors: [Color(0xFF4D574E), Color(0xFFB68B4B)],
+              colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
             ),
           ),
           child: Stack(
             children: [
               Align(
                 alignment: Alignment.center,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Poetry'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _recognizedText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24, color: Colors.white),
+                  ),
                 ),
               ),
               Align(
@@ -44,19 +101,20 @@ class _PoetryState extends State<PoetryVoice> {
                           onPressed: () => Navigator.pop(context),
                           icon: Icon(Icons.arrow_back),
                         ),
-                        SizedBox(width: 90),
+                        const SizedBox(width: 90),
                         GestureDetector(
                           onLongPressStart: (_) {
                             setState(() {
                               _isRecording = true;
                             });
-                            debugPrint('end');
+                            _startListening();
                           },
                           onLongPressEnd: (_) {
                             setState(() {
                               _isRecording = false;
                             });
-                            debugPrint('end');
+                            _stopListening();
+                            debugPrint(_recognizedText);
                           },
                           child: GlowingMicPainterWrapper(
                             glowing: _isRecording,

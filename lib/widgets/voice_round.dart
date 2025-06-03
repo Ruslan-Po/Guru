@@ -14,13 +14,13 @@ class VoiceRound extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
-          colors: [const Color(0xFF4D574E), const Color(0xFF956E2F)],
+          colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
         ),
         color: const Color.fromARGB(255, 0, 158, 13),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 10,
             spreadRadius: 2,
             offset: Offset(15, 5),
@@ -28,7 +28,10 @@ class VoiceRound extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(voiceTitle),
+      child: Text(
+        voiceTitle,
+        style: TextStyle(color: const Color.fromARGB(255, 110, 151, 162)),
+      ),
     );
   }
 }

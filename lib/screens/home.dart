@@ -38,10 +38,10 @@ class _HomeState extends State<Home> {
   double get _scaleActive => _activeSize / _normalSize;
 
   final List<String> images = [
-    'assets/images/1.png',
-    'assets/images/2.png',
-    'assets/images/3.png',
-    'assets/images/4.png',
+    'assets/images/flow.png',
+    'assets/images/poetry.png',
+    'assets/images/silence.png',
+    'assets/images/logic.png',
   ];
 
   @override
@@ -54,12 +54,35 @@ class _HomeState extends State<Home> {
               gradient: LinearGradient(
                 begin: Alignment.bottomLeft,
                 end: Alignment.topRight,
-                colors: [const Color(0xFF4D574E), const Color(0xFFB68B4B)],
+                colors: [
+                  const Color.fromARGB(255, 0, 0, 0),
+                  const Color(0xFF4D574E),
+                ],
               ),
             ),
             child: SizedBox.expand(
               child: Stack(
                 children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SizedBox(
+                      height: 600,
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 400),
+                        switchInCurve: Curves.easeIn,
+                        switchOutCurve: Curves.easeOut,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        child: Image.asset(
+                          images[_activeIndex],
+                          key: ValueKey<int>(_activeIndex),
+                          scale: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.only(
@@ -70,26 +93,7 @@ class _HomeState extends State<Home> {
                       child: MainRound(size: 350, child: Text('MAIN')),
                     ),
                   ),
-                  Positioned(
-                    top: 120,
-                    left: 0,
-                    right: 0,
-                    child: SizedBox(
-                      height: 250,
-                      child: AnimatedSwitcher(
-                        duration: Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeIn,
-                        switchOutCurve: Curves.easeOut,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        child: Image.asset(
-                          images[_activeIndex],
-                          key: ValueKey<int>(_activeIndex),
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
+
                   Positioned(
                     top: 665,
                     left: 30,

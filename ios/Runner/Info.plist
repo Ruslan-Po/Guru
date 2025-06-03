@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required for speech recognition</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech recognition access is required to convert your voice to text</string>
+	</dict>
 </plist>

@@ -34,13 +34,13 @@ class _MainRoundState extends State<MainRound> {
         gradient: LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
-          colors: [const Color(0xFF4D574E), const Color(0xFF956E2F)],
+          colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
         ),
         color: const Color.fromARGB(255, 0, 158, 13),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 30,
             spreadRadius: 8,
             offset: Offset(15, 15),
