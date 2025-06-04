@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guru/stiles/app_titles.dart';
 
 class VoiceRound extends StatelessWidget {
   final String voiceTitle;
@@ -28,10 +29,7 @@ class VoiceRound extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(
-        voiceTitle,
-        style: TextStyle(color: const Color.fromARGB(255, 110, 151, 162)),
-      ),
+      child: Text(voiceTitle, style: AppTextStyles.buttons),
     );
   }
 }

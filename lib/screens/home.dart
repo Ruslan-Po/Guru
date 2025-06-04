@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guru/app_routes.dart';
+import 'package:guru/stiles/app_titles.dart';
+import 'package:guru/voice_descriptions.dart';
 import 'package:guru/widgets/main_round.dart';
 import 'package:guru/widgets/voice_round.dart';
 
@@ -42,6 +44,13 @@ class _HomeState extends State<Home> {
     'assets/images/poetry.png',
     'assets/images/silence.png',
     'assets/images/logic.png',
+  ];
+
+  final List<String> descriptions = [
+    VoiceDescriptions.flow,
+    VoiceDescriptions.poetry,
+    VoiceDescriptions.silence,
+    VoiceDescriptions.logic,
   ];
 
   @override
@@ -90,7 +99,14 @@ class _HomeState extends State<Home> {
                         right: 5,
                         left: 5,
                       ),
-                      child: MainRound(size: 350, child: Text('MAIN')),
+                      child: MainRound(
+                        size: 350,
+                        child: Text(
+                          descriptions[_activeIndex],
+                          style: AppTextStyles.descriptions,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   ),
 
@@ -103,7 +119,8 @@ class _HomeState extends State<Home> {
                           _activeIndex = 0;
                         });
                       },
-                      onDoubleTap: () => _navigationByIndex(context, 0),
+                      onDoubleTap: () =>
+                          _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
                         scale: _activeIndex == 0 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -125,7 +142,8 @@ class _HomeState extends State<Home> {
                           _activeIndex = 1;
                         });
                       },
-                      onDoubleTap: () => _navigationByIndex(context, 1),
+                      onDoubleTap: () =>
+                          _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
                         scale: _activeIndex == 1 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -147,7 +165,8 @@ class _HomeState extends State<Home> {
                           _activeIndex = 2;
                         });
                       },
-                      onDoubleTap: () => _navigationByIndex(context, 2),
+                      onDoubleTap: () =>
+                          _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
                         scale: _activeIndex == 2 ? _scaleActive : _scaleNormal,
                         duration: _duration,
@@ -169,7 +188,8 @@ class _HomeState extends State<Home> {
                           _activeIndex = 3;
                         });
                       },
-                      onDoubleTap: () => _navigationByIndex(context, 3),
+                      onDoubleTap: () =>
+                          _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
                         scale: _activeIndex == 3 ? _scaleActive : _scaleNormal,
                         duration: _duration,

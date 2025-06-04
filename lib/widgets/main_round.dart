@@ -1,35 +1,16 @@
 import 'package:flutter/material.dart';
 
-class MainRound extends StatefulWidget {
+class MainRound extends StatelessWidget {
   final double size;
   final Widget child;
 
   const MainRound({super.key, required this.size, required this.child});
 
   @override
-  State<MainRound> createState() => _MainRoundState();
-}
-
-class _MainRoundState extends State<MainRound> {
-  late Widget _currentChild;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentChild = widget.child;
-  }
-
-  void updateChild(Widget newChild) {
-    setState(() {
-      _currentChild = newChild;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Container(
-      width: widget.size,
-      height: widget.size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomLeft,
@@ -40,7 +21,7 @@ class _MainRoundState extends State<MainRound> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 30,
             spreadRadius: 8,
             offset: Offset(15, 15),
@@ -48,7 +29,7 @@ class _MainRoundState extends State<MainRound> {
         ],
       ),
       alignment: Alignment.center,
-      child: _currentChild,
+      child: Padding(padding: const EdgeInsets.all(8.0), child: child),
     );
   }
 }
