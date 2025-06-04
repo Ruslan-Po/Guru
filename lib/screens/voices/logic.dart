@@ -64,23 +64,29 @@ class _LogicState extends State<LogicVoice> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox.expand(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomLeft,
-              end: Alignment.topRight,
-              colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
-            ),
+    final Size screenSize = MediaQuery.of(context).size;
+    final double bottomPadding = screenSize.height * 0.03;
+    final double micSize = screenSize.width * 0.25;
+    final double textMaxWidth = screenSize.width * 0.84;
+
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
+            colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
           ),
-          child: Stack(
-            children: [
-              // Текст по центру экрана
-              Align(
-                alignment: Alignment.center,
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: textMaxWidth),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenSize.width * 0.07,
+                  ),
                   child: Text(
                     _recognizedText,
                     textAlign: TextAlign.center,
@@ -88,45 +94,54 @@ class _LogicState extends State<LogicVoice> {
                   ),
                 ),
               ),
-              // Нижняя панель с кнопками
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back),
-                        ),
-                        const SizedBox(width: 90),
-                        GestureDetector(
-                          onLongPressStart: (_) {
-                            setState(() {
-                              _isRecording = true;
-                            });
-                            _startListening();
-                          },
-                          onLongPressEnd: (_) {
-                            setState(() {
-                              _isRecording = false;
-                            });
-                            _stopListening();
-                          },
-                          child: GlowingMicPainterWrapper(
-                            glowing: _isRecording,
-                            child: const MicRound(),
-                          ),
-                        ),
-                      ],
-                    ),
+            ),
+            // Микрофон по центру снизу
+            Positioned(
+              bottom: bottomPadding,
+              left: (screenSize.width - micSize) / 2.3,
+              child: GestureDetector(
+                onLongPressStart: (_) {
+                  setState(() {
+                    _isRecording = true;
+                  });
+                  _startListening();
+                },
+                onLongPressEnd: (_) {
+                  setState(() {
+                    _isRecording = false;
+                  });
+                  _stopListening();
+                },
+                child: GlowingMicPainterWrapper(
+                  glowing: _isRecording,
+                  child: SizedBox(
+                    width: micSize,
+                    height: micSize,
+                    child: const MicRound(),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            // Кнопка назад — снизу слева
+            Positioned(
+              left: screenSize.width * 0.04,
+              bottom: bottomPadding + micSize / 3,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                iconSize: screenSize.width * 0.085,
+              ),
+            ),
+            Positioned(
+              left: screenSize.width * 0.8,
+              bottom: bottomPadding + micSize / 3.3,
+              child: IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                iconSize: screenSize.width * 0.11,
+              ),
+            ),
+          ],
         ),
       ),
     );

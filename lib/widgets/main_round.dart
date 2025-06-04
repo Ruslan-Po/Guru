@@ -21,7 +21,7 @@ class MainRound extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withAlpha(04),
             blurRadius: 30,
             spreadRadius: 8,
             offset: Offset(15, 15),

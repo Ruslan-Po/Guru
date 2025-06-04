@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:guru/app_routes.dart';
 import 'package:guru/stiles/app_titles.dart';
@@ -36,9 +37,6 @@ class _HomeState extends State<Home> {
   static const double _activeSize = 100;
   static const Duration _duration = Duration(milliseconds: 250);
 
-  double get _scaleNormal => 1.0;
-  double get _scaleActive => _activeSize / _normalSize;
-
   final List<String> images = [
     'assets/images/flow.png',
     'assets/images/poetry.png',
@@ -53,8 +51,20 @@ class _HomeState extends State<Home> {
     VoiceDescriptions.logic,
   ];
 
+  final List<String> titles = ["Flow", "Poetry", "Silence", "Logic"];
+
+  final List<double> angles = [50, 75, 100, 125];
+
   @override
   Widget build(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+
+    final double mainRoundRadius = 175;
+    final double voiceButtonRadius = mainRoundRadius + 36;
+
+    final double centerX = screenSize.width / 2;
+    final double centerY = screenSize.height * 0.60;
+
     return Scaffold(
       body: Center(
         child: SizedBox.expand(
@@ -69,151 +79,90 @@ class _HomeState extends State<Home> {
                 ],
               ),
             ),
-            child: SizedBox.expand(
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: SizedBox(
-                      height: 600,
-                      child: AnimatedSwitcher(
-                        duration: Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeIn,
-                        switchOutCurve: Curves.easeOut,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        child: Image.asset(
-                          images[_activeIndex],
-                          key: ValueKey<int>(_activeIndex),
-                          scale: 0.4,
-                        ),
+            child: Stack(
+              children: [
+                // Картинка наверху
+                Positioned(
+                  top: -40,
+                  left: 0,
+                  right: 0,
+                  child: SizedBox(
+                    height: screenSize.height * 0.7,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      switchInCurve: Curves.easeIn,
+                      switchOutCurve: Curves.easeOut,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: Image.asset(
+                        images[_activeIndex],
+                        key: ValueKey<int>(_activeIndex),
+                        scale: 0.4,
                       ),
                     ),
                   ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: 150,
-                        right: 5,
-                        left: 5,
-                      ),
-                      child: MainRound(
-                        size: 350,
-                        child: Text(
-                          descriptions[_activeIndex],
-                          style: AppTextStyles.descriptions,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
+                ),
 
-                  Positioned(
-                    top: 665,
-                    left: 30,
+                Positioned(
+                  left: centerX - mainRoundRadius,
+                  top: centerY - mainRoundRadius,
+                  child: MainRound(
+                    size: mainRoundRadius * 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        descriptions[_activeIndex],
+                        style: AppTextStyles.descriptions,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+                ...List.generate(4, (i) {
+                  final double angleRad = angles[i] * pi / 180;
+                  final double x =
+                      centerX +
+                      voiceButtonRadius * cos(angleRad) -
+                      _normalSize / 2;
+                  final double y =
+                      centerY +
+                      voiceButtonRadius * sin(angleRad) -
+                      _normalSize / 2;
+
+                  return Positioned(
+                    left: x,
+                    top: y,
                     child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _activeIndex = 0;
-                        });
-                      },
+                      onTap: () => setState(() => _activeIndex = i),
                       onDoubleTap: () =>
                           _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
-                        scale: _activeIndex == 0 ? _scaleActive : _scaleNormal,
+                        scale: _activeIndex == i
+                            ? _activeSize / _normalSize
+                            : 1.0,
                         duration: _duration,
                         curve: Curves.easeOut,
                         child: SizedBox(
                           width: _normalSize,
                           height: _normalSize,
-                          child: VoiceRound(voiceTitle: "Flow"),
+                          child: VoiceRound(voiceTitle: titles[i]),
                         ),
                       ),
                     ),
+                  );
+                }),
+                // Кнопка Confirm внизу — адаптивно к низу экрана, справа
+                Positioned(
+                  right: screenSize.width * 0.08,
+                  bottom: screenSize.height * 0.04,
+                  child: GestureDetector(
+                    onTap: () {
+                      _navigationByIndex(context, _activeIndex);
+                    },
+                    child: VoiceRound(voiceTitle: "Confirm"),
                   ),
-                  Positioned(
-                    top: 710,
-                    left: 120,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _activeIndex = 1;
-                        });
-                      },
-                      onDoubleTap: () =>
-                          _navigationByIndex(context, _activeIndex),
-                      child: AnimatedScale(
-                        scale: _activeIndex == 1 ? _scaleActive : _scaleNormal,
-                        duration: _duration,
-                        curve: Curves.easeOut,
-                        child: SizedBox(
-                          width: _normalSize,
-                          height: _normalSize,
-                          child: VoiceRound(voiceTitle: "Poetry"),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 710,
-                    right: 120,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _activeIndex = 2;
-                        });
-                      },
-                      onDoubleTap: () =>
-                          _navigationByIndex(context, _activeIndex),
-                      child: AnimatedScale(
-                        scale: _activeIndex == 2 ? _scaleActive : _scaleNormal,
-                        duration: _duration,
-                        curve: Curves.easeOut,
-                        child: SizedBox(
-                          width: _normalSize,
-                          height: _normalSize,
-                          child: VoiceRound(voiceTitle: "Silence"),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 665,
-                    right: 30,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _activeIndex = 3;
-                        });
-                      },
-                      onDoubleTap: () =>
-                          _navigationByIndex(context, _activeIndex),
-                      child: AnimatedScale(
-                        scale: _activeIndex == 3 ? _scaleActive : _scaleNormal,
-                        duration: _duration,
-                        curve: Curves.easeOut,
-                        child: SizedBox(
-                          width: _normalSize,
-                          height: _normalSize,
-                          child: VoiceRound(voiceTitle: "Logic"),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 800,
-                    right: 30,
-                    child: GestureDetector(
-                      onTap: () {
-                        _navigationByIndex(context, _activeIndex);
-                      },
-                      child: VoiceRound(voiceTitle: "Confirm"),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
