@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:guru/services/openai_repository.dart';
 
 class FlowVoice extends StatefulWidget {
   const FlowVoice({super.key});
@@ -14,8 +15,12 @@ class _FlowVoiceState extends State<FlowVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
-  String _recognizedText = "Нажмите и удерживайте микрофон";
+  String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+
+  final OpenAIRepository _aiRepo = OpenAIRepository();
+
+  final PhilosopherVoice _voice = PhilosopherVoice.flow;
 
   @override
   void initState() {
@@ -32,21 +37,41 @@ class _FlowVoiceState extends State<FlowVoice> {
     setState(() {});
   }
 
-  void _onSpeechStatus(String status) {
+  void _testAI() async {
+    setState(() => _recognizedText = "Waiting for test answer...");
+    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+      userPrompt: "я ищу одобрения не у тех людей",
+      voice: _voice,
+    );
+    setState(() => _recognizedText = aiAnswer);
+  }
+
+  void _onSpeechStatus(String status) async {
     debugPrint('Speech status: $status');
     if (status == 'done' || status == 'notListening') {
+      String text = _lastRecognized.isNotEmpty
+          ? _lastRecognized
+          : "Nothing was recognized.";
       setState(() {
-        _recognizedText = _lastRecognized.isNotEmpty
-            ? _lastRecognized
-            : "Ничего не распознано";
+        _recognizedText = text;
       });
+
+      if (text.trim().isNotEmpty && text != "Nothing was recognized.") {
+        setState(
+          () => _recognizedText = "Waiting for the philosopher's answer...",
+        );
+        final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+          userPrompt: text,
+          voice: _voice,
+        );
+        setState(() => _recognizedText = aiAnswer);
+      }
     }
   }
 
   void _startListening() async {
     if (!_speechAvailable) return;
     await _speech.listen(
-      localeId: 'ru_RU',
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 5),
       onResult: (result) {
@@ -95,7 +120,6 @@ class _FlowVoiceState extends State<FlowVoice> {
                 ),
               ),
             ),
-            // Микрофон по центру снизу
             Positioned(
               bottom: bottomPadding,
               left: (screenSize.width - micSize) / 2.3,
@@ -122,7 +146,6 @@ class _FlowVoiceState extends State<FlowVoice> {
                 ),
               ),
             ),
-            // Кнопка назад — снизу слева
             Positioned(
               left: screenSize.width * 0.04,
               bottom: bottomPadding + micSize / 3,
@@ -140,6 +163,11 @@ class _FlowVoiceState extends State<FlowVoice> {
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                 iconSize: screenSize.width * 0.11,
               ),
+            ),
+            Positioned(
+              top: 80,
+              right: 30,
+              child: ElevatedButton(onPressed: _testAI, child: Text("Test AI")),
             ),
           ],
         ),

@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:guru/services/openai_repository.dart';
 
 class SilenceVoice extends StatefulWidget {
   const SilenceVoice({super.key});
 
   @override
-  State<SilenceVoice> createState() => _SilenceState();
+  State<SilenceVoice> createState() => _FlowVoiceState();
 }
 
-class _SilenceState extends State<SilenceVoice> {
+class _FlowVoiceState extends State<SilenceVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
-  String _recognizedText = "Нажмите и удерживайте микрофон";
+  String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+
+  final OpenAIRepository _aiRepo = OpenAIRepository();
+
+  final PhilosopherVoice _voice = PhilosopherVoice.silence;
 
   @override
   void initState() {
@@ -32,21 +37,32 @@ class _SilenceState extends State<SilenceVoice> {
     setState(() {});
   }
 
-  void _onSpeechStatus(String status) {
+  void _onSpeechStatus(String status) async {
     debugPrint('Speech status: $status');
     if (status == 'done' || status == 'notListening') {
+      String text = _lastRecognized.isNotEmpty
+          ? _lastRecognized
+          : "Nothing was recognized.";
       setState(() {
-        _recognizedText = _lastRecognized.isNotEmpty
-            ? _lastRecognized
-            : "Ничего не распознано";
+        _recognizedText = text;
       });
+
+      if (text.trim().isNotEmpty && text != "Nothing was recognized.") {
+        setState(
+          () => _recognizedText = "Waiting for the philosopher's answer...",
+        );
+        final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+          userPrompt: text,
+          voice: _voice,
+        );
+        setState(() => _recognizedText = aiAnswer);
+      }
     }
   }
 
   void _startListening() async {
     if (!_speechAvailable) return;
     await _speech.listen(
-      localeId: 'ru_RU',
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 5),
       onResult: (result) {
@@ -95,7 +111,6 @@ class _SilenceState extends State<SilenceVoice> {
                 ),
               ),
             ),
-            // Микрофон по центру снизу
             Positioned(
               bottom: bottomPadding,
               left: (screenSize.width - micSize) / 2.3,
@@ -122,7 +137,6 @@ class _SilenceState extends State<SilenceVoice> {
                 ),
               ),
             ),
-            // Кнопка назад — снизу слева
             Positioned(
               left: screenSize.width * 0.04,
               bottom: bottomPadding + micSize / 3,

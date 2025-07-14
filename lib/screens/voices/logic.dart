@@ -2,20 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:guru/services/openai_repository.dart'; // Импортируй репозиторий
 
 class LogicVoice extends StatefulWidget {
   const LogicVoice({super.key});
 
   @override
-  State<LogicVoice> createState() => _LogicState();
+  State<LogicVoice> createState() => _FlowVoiceState();
 }
 
-class _LogicState extends State<LogicVoice> {
+class _FlowVoiceState extends State<LogicVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
-  String _recognizedText = "Нажмите и удерживайте микрофон";
+  String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+
+  final OpenAIRepository _aiRepo = OpenAIRepository();
+
+  // Укажи, какой голос для этого экрана
+  final PhilosopherVoice _voice = PhilosopherVoice.logic;
 
   @override
   void initState() {
@@ -32,21 +38,32 @@ class _LogicState extends State<LogicVoice> {
     setState(() {});
   }
 
-  void _onSpeechStatus(String status) {
+  void _onSpeechStatus(String status) async {
     debugPrint('Speech status: $status');
     if (status == 'done' || status == 'notListening') {
+      String text = _lastRecognized.isNotEmpty
+          ? _lastRecognized
+          : "Nothing was recognized.";
       setState(() {
-        _recognizedText = _lastRecognized.isNotEmpty
-            ? _lastRecognized
-            : "Ничего не распознано";
+        _recognizedText = text;
       });
+
+      if (text.trim().isNotEmpty && text != "Nothing was recognized.") {
+        setState(
+          () => _recognizedText = "Waiting for the philosopher's answer...",
+        );
+        final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+          userPrompt: text,
+          voice: _voice,
+        );
+        setState(() => _recognizedText = aiAnswer);
+      }
     }
   }
 
   void _startListening() async {
     if (!_speechAvailable) return;
     await _speech.listen(
-      localeId: 'ru_RU',
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 5),
       onResult: (result) {
@@ -95,7 +112,6 @@ class _LogicState extends State<LogicVoice> {
                 ),
               ),
             ),
-            // Микрофон по центру снизу
             Positioned(
               bottom: bottomPadding,
               left: (screenSize.width - micSize) / 2.3,
@@ -122,7 +138,6 @@ class _LogicState extends State<LogicVoice> {
                 ),
               ),
             ),
-            // Кнопка назад — снизу слева
             Positioned(
               left: screenSize.width * 0.04,
               bottom: bottomPadding + micSize / 3,

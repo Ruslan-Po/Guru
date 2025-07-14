@@ -11,6 +11,8 @@ environment:
 
 dependencies:
   speech_to_text: ^7.0.0
+  openai_api: ^0.3.7
+  flutter_dotenv: ^5.2.1
 
   flutter:
     sdk: flutter
@@ -29,5 +31,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - env.txt
 
 
