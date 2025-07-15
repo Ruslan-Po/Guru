@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -7,41 +6,68 @@ enum PhilosopherVoice { flow, poetry, logic, silence }
 
 class OpenAIRepository {
   final String? _apiKey = dotenv.env['OPENAI_API_KEY'];
-  final String _model = 'gpt-4.1-mini';
+  final String _model = 'gpt-4.1-2025-04-14';
 
   static const Map<PhilosopherVoice, String> systemPrompts = {
     PhilosopherVoice.flow:
-        'Answer in the style of Alan Watts and Siddhartha Gautama. One deep, short advice. Do not exceed 80 tokens. Respond in the user’s language.',
+        'You are a fusion of Alan Watts and Bodhidharma. One deep, short advice.'
+        ' Express it in a calm and soothing tone.'
+        ' Give a short answer based on your own sayings and thoughts.'
+        ' Do not repeat standard images (such as water, wind, fire, sky, etc.).'
+        " Don't mention names."
+        ' Do not exceed 80 tokens.'
+        " Respond in the user’s language.",
 
     PhilosopherVoice.poetry:
-        'Give a short, finished and meaningful answer, inspired by the poetic spirit of Rumi and Tagore. '
-        'Use vivid, poetic imagery only if it deepens the message, not just for decoration. '
-        'Your answer should touch the heart or spark a sense of wonder, but remain concise and complete — no more than 50 tokens. '
-        'Respond in the language of the user.',
+        'You are a fusion of Rumi and Rabindranath Tagore. One deep, short advice.'
+        ' Express it in a poetic and heartfelt tone.'
+        ' Give a short answer based on your own sayings and thoughts.'
+        ' Do not repeat standard images (such as water, wind, fire, sky, etc.).'
+        " Don't mention names."
+        ' Do not exceed 80 tokens.'
+        " Respond in the language of the user.",
 
     PhilosopherVoice.logic:
-        'Give a clear, precise and thoughtful answer, inspired by the reasoning of Bertrand Russell and Aristotle. '
-        'Focus on explaining or clarifying the core of the user’s question, breaking it down if needed, but keep your answer concise and complete — no more than 50 tokens. '
-        'Respond in the language of the user.',
+        'You are a fusion of Socrates and Marcus Aurelius. One deep, short advice.'
+        ' Express it in a clear, logical, and composed tone.'
+        ' Give a short answer based on your own sayings and thoughts.'
+        ' Do not repeat standard images (such as water, wind, fire, sky, etc.).'
+        " Don't mention names."
+        ' Do not exceed 80 tokens.'
+        " Respond in the language of the user.",
 
     PhilosopherVoice.silence:
-        'Give a short, contemplative answer that invites the user inward, inspired by Lao Tzu and Ramana Maharshi. '
-        'If silence or paradox is appropriate, let it be present, but always express a clear and finished thought. '
-        'Avoid empty metaphors, focus on the quiet insight beneath words. '
-        'Respond in the language of the user. Do not exceed 50 tokens.',
+        'You are a fusion of Lao Tzu and Ramana Maharshi. One deep, short advice.'
+        ' Express it in a calm, tranquil, and almost silent tone.'
+        ' Give a short answer based on your own sayings and thoughts.'
+        ' Do not repeat standard images (such as water, wind, fire, sky, etc.).'
+        " Don't mention names."
+        ' Do not exceed 80 tokens.'
+        " Respond in the language of the user.",
   };
 
   Future<String> getPhilosopherAnswer({
     required String userPrompt,
     required PhilosopherVoice voice,
     int maxTokens = 80,
+    List<String> lastAiAnswers = const [],
   }) async {
-    final String? systemPrompt = systemPrompts[voice];
+    final String? basePrompt = systemPrompts[voice];
     if (_apiKey == null || _apiKey!.isEmpty) {
       return 'API KEY not set!';
     }
-    if (systemPrompt == null) {
+    if (basePrompt == null) {
       return 'No system prompt found for this voice.';
+    }
+
+    // Динамически формируем полный промт с учётом истории
+    String finalPrompt = basePrompt;
+    if (lastAiAnswers.isNotEmpty) {
+      final answersBlock = lastAiAnswers.map((a) => '- "$a"').join('\n');
+      finalPrompt =
+          'Here are your previous answers:\n$answersBlock\n'
+          'Do not repeat any metaphors, ideas, or comparisons from these answers.\n\n'
+          '$basePrompt';
     }
 
     final url = Uri.https('api.openai.com', '/v1/chat/completions');
@@ -53,23 +79,25 @@ class OpenAIRepository {
     final body = jsonEncode({
       "model": _model,
       "messages": [
-        {"role": "system", "content": systemPrompt},
+        {"role": "system", "content": finalPrompt},
         {"role": "user", "content": userPrompt},
       ],
       "max_tokens": maxTokens,
       "temperature": 0.1,
     });
 
-    debugPrint('[OPENAI REQUEST]');
-    debugPrint('System: $systemPrompt');
-    debugPrint('User: $userPrompt');
-    debugPrint('Body: $body');
+    // For debugging (optional)
+    // print('[OPENAI REQUEST]');
+    // print('System: $finalPrompt');
+    // print('User: $userPrompt');
+    // print('Body: $body');
 
     final response = await http.post(url, headers: headers, body: body);
 
-    debugPrint('[OPENAI RESPONSE]');
-    debugPrint('Status: ${response.statusCode}');
-    debugPrint('Body: ${response.body}');
+    // For debugging (optional)
+    // print('[OPENAI RESPONSE]');
+    // print('Status: ${response.statusCode}');
+    // print('Body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

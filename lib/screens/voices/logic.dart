@@ -2,25 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:guru/services/openai_repository.dart'; // Импортируй репозиторий
+import 'package:guru/services/openai_repository.dart';
 
 class LogicVoice extends StatefulWidget {
   const LogicVoice({super.key});
 
   @override
-  State<LogicVoice> createState() => _FlowVoiceState();
+  State<LogicVoice> createState() => _LogicVoiceState();
 }
 
-class _FlowVoiceState extends State<LogicVoice> {
+class _LogicVoiceState extends State<LogicVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
   String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+  final List<String> _lastAiAnswers = [];
 
   final OpenAIRepository _aiRepo = OpenAIRepository();
-
-  // Укажи, какой голос для этого экрана
   final PhilosopherVoice _voice = PhilosopherVoice.logic;
 
   @override
@@ -36,6 +35,23 @@ class _FlowVoiceState extends State<LogicVoice> {
       onError: (error) => debugPrint('Speech error: $error'),
     );
     setState(() {});
+  }
+
+  void _testAI() async {
+    setState(() => _recognizedText = "Waiting for test answer...");
+    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+      userPrompt: "я не умею отказывать и люди этим пользуются",
+      voice: _voice,
+      lastAiAnswers: _lastAiAnswers, // <-- передаём историю
+    );
+    setState(() {
+      _recognizedText = aiAnswer;
+      _lastAiAnswers.add(aiAnswer);
+      if (_lastAiAnswers.length > 3) {
+        _lastAiAnswers.removeAt(0);
+      }
+    });
+    debugPrint(_lastAiAnswers.join('\n'));
   }
 
   void _onSpeechStatus(String status) async {
@@ -55,8 +71,15 @@ class _FlowVoiceState extends State<LogicVoice> {
         final aiAnswer = await _aiRepo.getPhilosopherAnswer(
           userPrompt: text,
           voice: _voice,
+          lastAiAnswers: _lastAiAnswers, // <-- передаём историю
         );
-        setState(() => _recognizedText = aiAnswer);
+        setState(() {
+          _recognizedText = aiAnswer;
+          _lastAiAnswers.add(aiAnswer);
+          if (_lastAiAnswers.length > 3) {
+            _lastAiAnswers.removeAt(0);
+          }
+        });
       }
     }
   }
@@ -151,9 +174,17 @@ class _FlowVoiceState extends State<LogicVoice> {
               left: screenSize.width * 0.8,
               bottom: bottomPadding + micSize / 3.3,
               child: IconButton(
-                onPressed: () {},
+                onPressed: () {}, // Можно добавить обновление ответа по желанию
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                 iconSize: screenSize.width * 0.11,
+              ),
+            ),
+            Positioned(
+              top: 80,
+              right: 30,
+              child: ElevatedButton(
+                onPressed: _testAI,
+                child: const Text("Test AI"),
               ),
             ),
           ],

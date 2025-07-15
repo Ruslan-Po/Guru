@@ -8,18 +8,18 @@ class SilenceVoice extends StatefulWidget {
   const SilenceVoice({super.key});
 
   @override
-  State<SilenceVoice> createState() => _FlowVoiceState();
+  State<SilenceVoice> createState() => _SilenceVoiceState();
 }
 
-class _FlowVoiceState extends State<SilenceVoice> {
+class _SilenceVoiceState extends State<SilenceVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
   String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+  final List<String> _lastAiAnswers = [];
 
   final OpenAIRepository _aiRepo = OpenAIRepository();
-
   final PhilosopherVoice _voice = PhilosopherVoice.silence;
 
   @override
@@ -35,6 +35,23 @@ class _FlowVoiceState extends State<SilenceVoice> {
       onError: (error) => debugPrint('Speech error: $error'),
     );
     setState(() {});
+  }
+
+  void _testAI() async {
+    setState(() => _recognizedText = "Waiting for test answer...");
+    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+      userPrompt: "смерть пугает меня",
+      voice: _voice,
+      lastAiAnswers: _lastAiAnswers, // <-- добавлено
+    );
+    setState(() {
+      _recognizedText = aiAnswer;
+      _lastAiAnswers.add(aiAnswer);
+      if (_lastAiAnswers.length > 3) {
+        _lastAiAnswers.removeAt(0);
+      }
+    });
+    debugPrint(_lastAiAnswers.join('\n'));
   }
 
   void _onSpeechStatus(String status) async {
@@ -54,8 +71,15 @@ class _FlowVoiceState extends State<SilenceVoice> {
         final aiAnswer = await _aiRepo.getPhilosopherAnswer(
           userPrompt: text,
           voice: _voice,
+          lastAiAnswers: _lastAiAnswers, // <-- добавлено
         );
-        setState(() => _recognizedText = aiAnswer);
+        setState(() {
+          _recognizedText = aiAnswer;
+          _lastAiAnswers.add(aiAnswer);
+          if (_lastAiAnswers.length > 3) {
+            _lastAiAnswers.removeAt(0);
+          }
+        });
       }
     }
   }
@@ -150,9 +174,17 @@ class _FlowVoiceState extends State<SilenceVoice> {
               left: screenSize.width * 0.8,
               bottom: bottomPadding + micSize / 3.3,
               child: IconButton(
-                onPressed: () {},
+                onPressed: () {}, // Можно добавить обновление ответа по желанию
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                 iconSize: screenSize.width * 0.11,
+              ),
+            ),
+            Positioned(
+              top: 80,
+              right: 30,
+              child: ElevatedButton(
+                onPressed: _testAI,
+                child: const Text("Test AI"),
               ),
             ),
           ],

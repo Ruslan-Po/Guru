@@ -8,18 +8,18 @@ class PoetryVoice extends StatefulWidget {
   const PoetryVoice({super.key});
 
   @override
-  State<PoetryVoice> createState() => _FlowVoiceState();
+  State<PoetryVoice> createState() => _PoetryVoiceState();
 }
 
-class _FlowVoiceState extends State<PoetryVoice> {
+class _PoetryVoiceState extends State<PoetryVoice> {
   bool _isRecording = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
   String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+  final List<String> _lastAiAnswers = [];
 
   final OpenAIRepository _aiRepo = OpenAIRepository();
-
   final PhilosopherVoice _voice = PhilosopherVoice.poetry;
 
   @override
@@ -35,6 +35,23 @@ class _FlowVoiceState extends State<PoetryVoice> {
       onError: (error) => debugPrint('Speech error: $error'),
     );
     setState(() {});
+  }
+
+  void _testAI() async {
+    setState(() => _recognizedText = "Waiting for test answer...");
+    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+      userPrompt: "я ищу одобрения не у тех людей",
+      voice: _voice,
+      lastAiAnswers: _lastAiAnswers, // <-- теперь передаем историю
+    );
+    setState(() {
+      _recognizedText = aiAnswer;
+      _lastAiAnswers.add(aiAnswer);
+      if (_lastAiAnswers.length > 3) {
+        _lastAiAnswers.removeAt(0);
+      }
+    });
+    debugPrint(_lastAiAnswers.join('\n'));
   }
 
   void _onSpeechStatus(String status) async {
@@ -54,8 +71,15 @@ class _FlowVoiceState extends State<PoetryVoice> {
         final aiAnswer = await _aiRepo.getPhilosopherAnswer(
           userPrompt: text,
           voice: _voice,
+          lastAiAnswers: _lastAiAnswers, // <-- теперь передаем историю
         );
-        setState(() => _recognizedText = aiAnswer);
+        setState(() {
+          _recognizedText = aiAnswer;
+          _lastAiAnswers.add(aiAnswer);
+          if (_lastAiAnswers.length > 3) {
+            _lastAiAnswers.removeAt(0);
+          }
+        });
       }
     }
   }
@@ -150,9 +174,17 @@ class _FlowVoiceState extends State<PoetryVoice> {
               left: screenSize.width * 0.8,
               bottom: bottomPadding + micSize / 3.3,
               child: IconButton(
-                onPressed: () {},
+                onPressed: () {}, // Можно добавить обновление ответа по желанию
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                 iconSize: screenSize.width * 0.11,
+              ),
+            ),
+            Positioned(
+              top: 80,
+              right: 30,
+              child: ElevatedButton(
+                onPressed: _testAI,
+                child: const Text("Test AI"),
               ),
             ),
           ],
