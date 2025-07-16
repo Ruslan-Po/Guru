@@ -53,7 +53,7 @@ class OpenAIRepository {
     List<String> lastAiAnswers = const [],
   }) async {
     final String? basePrompt = systemPrompts[voice];
-    if (_apiKey == null || _apiKey!.isEmpty) {
+    if (_apiKey == null || _apiKey.isEmpty) {
       return 'API KEY not set!';
     }
     if (basePrompt == null) {

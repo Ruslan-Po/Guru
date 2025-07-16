@@ -81,7 +81,7 @@ class _HomeState extends State<Home> {
             ),
             child: Stack(
               children: [
-                // Картинка наверху
+                
                 Positioned(
                   top: -40,
                   left: 0,
