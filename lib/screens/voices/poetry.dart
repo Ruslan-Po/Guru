@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guru/fade_text_anim.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -127,9 +128,8 @@ class _PoetryVoiceState extends State<PoetryVoice> {
                   padding: EdgeInsets.symmetric(
                     horizontal: screenSize.width * 0.07,
                   ),
-                  child: Text(
-                    _recognizedText,
-                    textAlign: TextAlign.center,
+                  child: FadeSwitchingText(
+                    text: _recognizedText,
                     style: const TextStyle(fontSize: 24, color: Colors.white),
                   ),
                 ),

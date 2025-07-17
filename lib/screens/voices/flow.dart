@@ -3,6 +3,7 @@ import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:guru/services/openai_repository.dart';
+import 'package:guru/fade_text_anim.dart';
 
 class FlowVoice extends StatefulWidget {
   const FlowVoice({super.key});
@@ -71,7 +72,7 @@ class _FlowVoiceState extends State<FlowVoice> {
         final aiAnswer = await _aiRepo.getPhilosopherAnswer(
           userPrompt: text,
           voice: _voice,
-          lastAiAnswers: _lastAiAnswers, // <-- передаём историю
+          lastAiAnswers: _lastAiAnswers,
         );
         setState(() {
           _recognizedText = aiAnswer;
@@ -127,9 +128,8 @@ class _FlowVoiceState extends State<FlowVoice> {
                   padding: EdgeInsets.symmetric(
                     horizontal: screenSize.width * 0.07,
                   ),
-                  child: Text(
-                    _recognizedText,
-                    textAlign: TextAlign.center,
+                  child: FadeSwitchingText(
+                    text: _recognizedText,
                     style: const TextStyle(fontSize: 24, color: Colors.white),
                   ),
                 ),
