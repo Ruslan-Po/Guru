@@ -7,12 +7,12 @@ class FadeSwitchingText extends StatefulWidget {
   final Duration fadeInDuration;
 
   const FadeSwitchingText({
-    Key? key,
+    super.key,
     required this.text,
     this.style,
     this.fadeOutDuration = const Duration(milliseconds: 400),
     this.fadeInDuration = const Duration(milliseconds: 1500),
-  }) : super(key: key);
+  });
 
   @override
   State<FadeSwitchingText> createState() => _FadeSwitchingTextState();
@@ -30,6 +30,7 @@ class _FadeSwitchingTextState extends State<FadeSwitchingText>
   @override
   void initState() {
     super.initState();
+    debugPrint('FadeSwitchingText initState $_currentText');
     _currentText = widget.text;
     _fadeController = AnimationController(
       vsync: this,
@@ -45,7 +46,7 @@ class _FadeSwitchingTextState extends State<FadeSwitchingText>
   @override
   void didUpdateWidget(FadeSwitchingText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.text != oldWidget.text) {
+    if (widget.text != _currentText) {
       _switchText(widget.text);
     }
   }

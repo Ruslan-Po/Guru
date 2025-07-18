@@ -4,11 +4,13 @@ import 'dart:math';
 class GlowingMicPainterWrapper extends StatefulWidget {
   final Widget child;
   final bool glowing;
+  final Color glowColor;
 
   const GlowingMicPainterWrapper({
     super.key,
     required this.child,
     required this.glowing,
+    required this.glowColor,
   });
 
   @override
@@ -84,6 +86,7 @@ class _GlowingMicPainterWrapperState extends State<GlowingMicPainterWrapper>
                 painter: GlowCirclePainter(
                   opacity: _opacityAnimation.value,
                   sweepAngle: _arcAngle.value,
+                  glowColor: widget.glowColor,
                 ),
               );
             },
@@ -98,8 +101,13 @@ class _GlowingMicPainterWrapperState extends State<GlowingMicPainterWrapper>
 class GlowCirclePainter extends CustomPainter {
   final double opacity;
   final double sweepAngle;
+  final Color glowColor;
 
-  GlowCirclePainter({required this.opacity, required this.sweepAngle});
+  GlowCirclePainter({
+    required this.opacity,
+    required this.sweepAngle,
+    required this.glowColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -114,12 +122,7 @@ class GlowCirclePainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..color = const Color.fromARGB(
-        255,
-        189,
-        136,
-        87,
-      ).withValues(alpha: opacity)
+      ..color = glowColor.withAlpha(100)
       ..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
 

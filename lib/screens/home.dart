@@ -5,6 +5,7 @@ import 'package:guru/stiles/app_titles.dart';
 import 'package:guru/voice_descriptions.dart';
 import 'package:guru/widgets/main_round.dart';
 import 'package:guru/widgets/voice_round.dart';
+import 'package:vibration/vibration.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -51,6 +52,13 @@ class _HomeState extends State<Home> {
     VoiceDescriptions.logic,
   ];
 
+  void _vibrate() async {
+    bool hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator) {
+      Vibration.vibrate(duration: 50);
+    }
+  }
+
   final List<String> titles = ["Flow", "Poetry", "Silence", "Logic"];
 
   final List<double> angles = [50, 75, 100, 125];
@@ -81,7 +89,6 @@ class _HomeState extends State<Home> {
             ),
             child: Stack(
               children: [
-                
                 Positioned(
                   top: -40,
                   left: 0,
@@ -133,7 +140,10 @@ class _HomeState extends State<Home> {
                     left: x,
                     top: y,
                     child: GestureDetector(
-                      onTap: () => setState(() => _activeIndex = i),
+                      onTap: () {
+                        setState(() => _activeIndex = i);
+                        _vibrate();
+                      },
                       onDoubleTap: () =>
                           _navigationByIndex(context, _activeIndex),
                       child: AnimatedScale(
@@ -151,13 +161,14 @@ class _HomeState extends State<Home> {
                     ),
                   );
                 }),
-                // Кнопка Confirm внизу — адаптивно к низу экрана, справа
+
                 Positioned(
                   right: screenSize.width * 0.08,
                   bottom: screenSize.height * 0.04,
                   child: GestureDetector(
                     onTap: () {
                       _navigationByIndex(context, _activeIndex);
+                      _vibrate();
                     },
                     child: VoiceRound(voiceTitle: "Confirm"),
                   ),

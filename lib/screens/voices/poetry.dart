@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:guru/fade_text_anim.dart';
+import 'package:guru/stiles/app_titles.dart';
 import 'package:guru/widgets/glow_wrapper.dart';
 import 'package:guru/widgets/microphone.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:guru/services/openai_repository.dart';
+import 'package:vibration/vibration.dart';
+
+enum DisplayState { idle, listening, waitingAi, aiAnswer }
 
 class PoetryVoice extends StatefulWidget {
   const PoetryVoice({super.key});
@@ -18,10 +22,19 @@ class _PoetryVoiceState extends State<PoetryVoice> {
   bool _speechAvailable = false;
   String _recognizedText = "Hold the button and speak";
   String _lastRecognized = "";
+  String _aiAnswerText = "";
+  DisplayState _displayState = DisplayState.idle;
   final List<String> _lastAiAnswers = [];
 
   final OpenAIRepository _aiRepo = OpenAIRepository();
   final PhilosopherVoice _voice = PhilosopherVoice.poetry;
+
+  void _vibrate() async {
+    bool hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator) {
+      Vibration.vibrate(duration: 50);
+    }
+  }
 
   @override
   void initState() {
@@ -38,48 +51,36 @@ class _PoetryVoiceState extends State<PoetryVoice> {
     setState(() {});
   }
 
-  void _testAI() async {
-    setState(() => _recognizedText = "Waiting for test answer...");
-    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
-      userPrompt: "я ищу одобрения не у тех людей",
-      voice: _voice,
-      lastAiAnswers: _lastAiAnswers, // <-- теперь передаем историю
-    );
-    setState(() {
-      _recognizedText = aiAnswer;
-      _lastAiAnswers.add(aiAnswer);
-      if (_lastAiAnswers.length > 3) {
-        _lastAiAnswers.removeAt(0);
-      }
-    });
-    debugPrint(_lastAiAnswers.join('\n'));
-  }
-
   void _onSpeechStatus(String status) async {
     debugPrint('Speech status: $status');
     if (status == 'done' || status == 'notListening') {
       String text = _lastRecognized.isNotEmpty
           ? _lastRecognized
           : "Nothing was recognized.";
-      setState(() {
-        _recognizedText = text;
-      });
 
       if (text.trim().isNotEmpty && text != "Nothing was recognized.") {
-        setState(
-          () => _recognizedText = "Waiting for the philosopher's answer...",
-        );
+        setState(() {
+          _recognizedText = text;
+          _displayState = DisplayState.waitingAi;
+        });
+
         final aiAnswer = await _aiRepo.getPhilosopherAnswer(
           userPrompt: text,
           voice: _voice,
-          lastAiAnswers: _lastAiAnswers, // <-- теперь передаем историю
+          lastAiAnswers: _lastAiAnswers,
         );
         setState(() {
-          _recognizedText = aiAnswer;
+          _aiAnswerText = aiAnswer;
+          _displayState = DisplayState.aiAnswer;
           _lastAiAnswers.add(aiAnswer);
           if (_lastAiAnswers.length > 3) {
             _lastAiAnswers.removeAt(0);
           }
+        });
+      } else {
+        setState(() {
+          _recognizedText = text;
+          _displayState = DisplayState.idle;
         });
       }
     }
@@ -89,11 +90,13 @@ class _PoetryVoiceState extends State<PoetryVoice> {
     if (!_speechAvailable) return;
     await _speech.listen(
       listenFor: const Duration(seconds: 12),
-      pauseFor: const Duration(seconds: 5),
+      pauseFor: const Duration(seconds: 10),
+      localeId: 'ru_RU',
       onResult: (result) {
         _lastRecognized = result.recognizedWords;
         setState(() {
           _recognizedText = _lastRecognized;
+          _displayState = DisplayState.listening;
         });
       },
     );
@@ -101,6 +104,37 @@ class _PoetryVoiceState extends State<PoetryVoice> {
 
   void _stopListening() async {
     await _speech.stop();
+  }
+
+  Widget _buildText() {
+    String textToShow = "";
+    TextStyle style = AppTextStyles.poetryAnswer;
+    Duration fadeIn = const Duration(milliseconds: 1500);
+    Duration fadeOut = const Duration(milliseconds: 400);
+
+    if (_displayState == DisplayState.aiAnswer) {
+      textToShow = _aiAnswerText;
+    } else if (_displayState == DisplayState.listening) {
+      textToShow = _recognizedText;
+      fadeIn = Duration.zero;
+      fadeOut = Duration.zero;
+    } else if (_displayState == DisplayState.waitingAi) {
+      textToShow = 'Waiting for Guru’s answer';
+      style = style.copyWith(fontStyle: FontStyle.italic);
+      fadeIn = Duration.zero;
+      fadeOut = Duration.zero;
+    } else {
+      textToShow = _recognizedText;
+      fadeIn = Duration.zero;
+      fadeOut = Duration.zero;
+    }
+
+    return FadeSwitchingText(
+      text: textToShow,
+      style: style,
+      fadeInDuration: fadeIn,
+      fadeOutDuration: fadeOut,
+    );
   }
 
   @override
@@ -128,10 +162,7 @@ class _PoetryVoiceState extends State<PoetryVoice> {
                   padding: EdgeInsets.symmetric(
                     horizontal: screenSize.width * 0.07,
                   ),
-                  child: FadeSwitchingText(
-                    text: _recognizedText,
-                    style: const TextStyle(fontSize: 24, color: Colors.white),
-                  ),
+                  child: _buildText(),
                 ),
               ),
             ),
@@ -140,6 +171,7 @@ class _PoetryVoiceState extends State<PoetryVoice> {
               left: (screenSize.width - micSize) / 2.3,
               child: GestureDetector(
                 onLongPressStart: (_) {
+                  _vibrate();
                   setState(() {
                     _isRecording = true;
                   });
@@ -153,6 +185,7 @@ class _PoetryVoiceState extends State<PoetryVoice> {
                 },
                 child: GlowingMicPainterWrapper(
                   glowing: _isRecording,
+                  glowColor: const Color(0xFFC47AD6),
                   child: SizedBox(
                     width: micSize,
                     height: micSize,
@@ -165,7 +198,10 @@ class _PoetryVoiceState extends State<PoetryVoice> {
               left: screenSize.width * 0.04,
               bottom: bottomPadding + micSize / 3,
               child: IconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _vibrate();
+                },
                 icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
                 iconSize: screenSize.width * 0.085,
               ),
@@ -174,17 +210,11 @@ class _PoetryVoiceState extends State<PoetryVoice> {
               left: screenSize.width * 0.8,
               bottom: bottomPadding + micSize / 3.3,
               child: IconButton(
-                onPressed: () {}, // Можно добавить обновление ответа по желанию
+                onPressed: () {
+                  _vibrate();
+                }, // Можно добавить обновление ответа по желанию
                 icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                 iconSize: screenSize.width * 0.11,
-              ),
-            ),
-            Positioned(
-              top: 80,
-              right: 30,
-              child: ElevatedButton(
-                onPressed: _testAI,
-                child: const Text("Test AI"),
               ),
             ),
           ],
