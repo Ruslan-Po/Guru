@@ -1,4 +1,4 @@
-package com.example.guru
+package com.ruslee.guru
 
 import io.flutter.embedding.android.FlutterActivity
 

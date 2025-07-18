@@ -71,7 +71,7 @@ class _HomeState extends State<Home> {
     final double voiceButtonRadius = mainRoundRadius + 36;
 
     final double centerX = screenSize.width / 2;
-    final double centerY = screenSize.height * 0.60;
+    final double centerY = screenSize.height * 0.57;
 
     return Scaffold(
       body: Center(
