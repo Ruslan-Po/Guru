@@ -142,18 +142,46 @@ class _FlowVoiceState extends State<FlowVoice> {
     await _speech.stop();
   }
 
-  void _resetAll() {
-    if (_isDisposed) return;
+  void _regenerateAiAnswer() async {
+    if (_recognizedText.trim().isEmpty ||
+        _recognizedText == "Nothing was recognized." ||
+        _displayState == DisplayState.waitingAi) {
+      // Нечего регенерировать
+      return;
+    }
     setState(() {
-      _recognizedText = "Hold the button and speak";
-      _aiAnswerText = "";
-      _displayState = DisplayState.idle;
-      _isRecording = false;
-      _lastAiAnswers = [];
-      _sessionRecognized = null; // <--- сбрасываем!
+      _displayState = DisplayState.waitingAi;
     });
-    _initSpeech();
+
+    final aiAnswer = await _aiRepo.getPhilosopherAnswer(
+      userPrompt: _recognizedText,
+      voice: _voice,
+      lastAiAnswers: _lastAiAnswers,
+    );
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _aiAnswerText = aiAnswer;
+        _displayState = DisplayState.aiAnswer;
+        _lastAiAnswers.add(aiAnswer);
+        if (_lastAiAnswers.length > 3) {
+          _lastAiAnswers.removeAt(0);
+        }
+      });
+    }
   }
+
+  // void _resetAll() {
+  //   if (_isDisposed) return;
+  //   setState(() {
+  //     _recognizedText = "Hold the button and speak";
+  //     _aiAnswerText = "";
+  //     _displayState = DisplayState.idle;
+  //     _isRecording = false;
+  //     _lastAiAnswers = [];
+  //     _sessionRecognized = null; // <--- сбрасываем!
+  //   });
+  //   _initSpeech();
+  // }
 
   Widget _buildText() {
     String textToShow = "";
@@ -169,6 +197,7 @@ class _FlowVoiceState extends State<FlowVoice> {
       fadeOut = Duration.zero;
     } else if (_displayState == DisplayState.waitingAi) {
       textToShow = "Waiting for Guru’s answer...";
+      style = AppTextStyles.flowAnswer;
       fadeIn = Duration.zero;
       fadeOut = Duration.zero;
     } else {
@@ -216,7 +245,7 @@ class _FlowVoiceState extends State<FlowVoice> {
             ),
             Positioned(
               bottom: bottomPadding,
-              left: (screenSize.width - micSize) / 2.3,
+              left: (screenSize.width - micSize) / 2.37,
               child: GestureDetector(
                 onLongPressStart: (_) {
                   _vibrate();
@@ -243,27 +272,35 @@ class _FlowVoiceState extends State<FlowVoice> {
               ),
             ),
             Positioned(
-              left: screenSize.width * 0.04,
-              bottom: bottomPadding + micSize / 3,
+              left: screenSize.width * 0.1,
+              bottom: bottomPadding + micSize / 1.1,
               child: IconButton(
                 onPressed: () {
                   Navigator.pop(context);
                   _vibrate();
                 },
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                iconSize: screenSize.width * 0.085,
+                icon: Image.asset(
+                  'assets/icons/prev.png',
+                  width: screenSize.width * 0.08,
+                  height: screenSize.width * 0.08,
+                  color: Colors.white,
+                ),
               ),
             ),
             Positioned(
-              left: screenSize.width * 0.8,
-              bottom: bottomPadding + micSize / 3.3,
+              left: screenSize.width * 0.77,
+              bottom: bottomPadding + micSize / 1.1,
               child: IconButton(
                 onPressed: () {
                   _vibrate();
-                  _resetAll();
+                  _regenerateAiAnswer();
                 },
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                iconSize: screenSize.width * 0.11,
+                icon: Image.asset(
+                  'assets/icons/refresh.png',
+                  width: screenSize.width * 0.08,
+                  height: screenSize.width * 0.08,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],

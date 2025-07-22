@@ -17,7 +17,6 @@ class VoiceRound extends StatelessWidget {
           end: Alignment.topRight,
           colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
         ),
-        color: const Color.fromARGB(255, 0, 158, 13),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(

@@ -59,8 +59,6 @@ class OpenAIRepository {
     if (basePrompt == null) {
       return 'No system prompt found for this voice.';
     }
-
-    // Динамически формируем полный промт с учётом истории
     String finalPrompt = basePrompt;
     if (lastAiAnswers.isNotEmpty) {
       final answersBlock = lastAiAnswers.map((a) => '- "$a"').join('\n');
