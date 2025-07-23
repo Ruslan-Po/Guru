@@ -146,7 +146,6 @@ class _FlowVoiceState extends State<FlowVoice> {
     if (_recognizedText.trim().isEmpty ||
         _recognizedText == "Nothing was recognized." ||
         _displayState == DisplayState.waitingAi) {
-      // Нечего регенерировать
       return;
     }
     setState(() {
