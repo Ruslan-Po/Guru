@@ -239,62 +239,67 @@ class _PoetryVoiceState extends State<PoetryVoice> {
             ),
             Positioned(
               bottom: bottomPadding,
-              left: (screenSize.width - micSize) / 2.37,
-              child: GestureDetector(
-                onLongPressStart: (_) {
-                  _vibrate();
-                  setState(() {
-                    _isRecording = true;
-                  });
-                  _startListening();
-                },
-                onLongPressEnd: (_) {
-                  setState(() {
-                    _isRecording = false;
-                  });
-                  _stopListening();
-                },
-                child: GlowingMicPainterWrapper(
-                  glowing: _isRecording,
-                  glowColor: const Color(0xFFC47AD6),
-                  child: SizedBox(
-                    width: micSize,
-                    height: micSize,
-                    child: const MicRound(),
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment:
+                    CrossAxisAlignment.center, // Центровка по вертикали
+                children: [
+                  // Назад
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _vibrate();
+                    },
+                    icon: Image.asset(
+                      'assets/icons/prev.png',
+                      width: screenSize.width * 0.08,
+                      height: screenSize.width * 0.08,
+                      color: const Color.fromARGB(149, 255, 255, 255),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: screenSize.width * 0.1,
-              bottom: bottomPadding + micSize / 1.1,
-              child: IconButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _vibrate();
-                },
-                icon: Image.asset(
-                  'assets/icons/prev.png',
-                  width: screenSize.width * 0.08,
-                  height: screenSize.width * 0.08,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Positioned(
-              left: screenSize.width * 0.77,
-              bottom: bottomPadding + micSize / 1.1,
-              child: IconButton(
-                onPressed: () {
-                  _vibrate();
-                  _regenerateAiAnswer();
-                },
-                icon: Image.asset(
-                  'assets/icons/refresh.png',
-                  width: screenSize.width * 0.08,
-                  height: screenSize.width * 0.08,
-                  color: Colors.white,
-                ),
+
+                  // Микрофон
+                  GestureDetector(
+                    onLongPressStart: (_) {
+                      _vibrate();
+                      setState(() {
+                        _isRecording = true;
+                      });
+                      _startListening();
+                    },
+                    onLongPressEnd: (_) {
+                      setState(() {
+                        _isRecording = false;
+                      });
+                      _stopListening();
+                    },
+                    child: GlowingMicPainterWrapper(
+                      glowing: _isRecording,
+                      glowColor: const Color(0xFFC47AD6), // Фиолетовый
+                      child: SizedBox(
+                        width: micSize,
+                        height: micSize,
+                        child: const MicRound(),
+                      ),
+                    ),
+                  ),
+
+                  // Обновить
+                  IconButton(
+                    onPressed: () {
+                      _vibrate();
+                      _regenerateAiAnswer();
+                    },
+                    icon: Image.asset(
+                      'assets/icons/refresh.png',
+                      width: screenSize.width * 0.08,
+                      height: screenSize.width * 0.08,
+                      color: const Color.fromARGB(149, 255, 255, 255),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

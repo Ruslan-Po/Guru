@@ -13,3 +13,5 @@ env.txt
 key.properties
 **/*.keystore
 **/*.jks
+android/key.properties
+android/app/guru.jks
