@@ -79,7 +79,7 @@ class _SilenceVoiceState extends State<SilenceVoice> {
     await _speech.listen(
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 10),
-      localeId: 'ru_RU',
+      localeId: 'en_US',
       onResult: (result) async {
         debugPrint(
           "onResult: ${result.recognizedWords} (final: ${result.finalResult})",

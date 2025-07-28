@@ -79,7 +79,7 @@ class _FlowVoiceState extends State<FlowVoice> {
     await _speech.listen(
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 10),
-      localeId: 'ru_RU',
+      localeId: 'en_US',
       onResult: (result) async {
         debugPrint(
           "onResult: ${result.recognizedWords} (final: ${result.finalResult})",
@@ -90,7 +90,6 @@ class _FlowVoiceState extends State<FlowVoice> {
             _displayState = DisplayState.listening;
           });
         }
-        // Если это итоговый результат, запускаем ИИ
         if (result.finalResult) {
           if (result.recognizedWords.trim().isNotEmpty) {
             if (mounted && !_isDisposed) {
@@ -262,11 +261,8 @@ class _FlowVoiceState extends State<FlowVoice> {
                       color: const Color.fromARGB(149, 255, 255, 255),
                     ),
                   ),
-
                   Padding(
-                    padding: EdgeInsets.only(
-                      top: micSize * 0.3,
-                    ), // отступ сверху, чтобы опустить микрофон
+                    padding: EdgeInsets.only(top: micSize * 0.3),
                     child: GestureDetector(
                       onLongPressStart: (_) {
                         _vibrate();
