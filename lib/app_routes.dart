@@ -4,4 +4,5 @@ class Routes {
   static const String flow = '/flow';
   static const String logic = '/logic';
   static const String poetry = '/poetry';
+  static const String subscription = '/subscription';
 }
