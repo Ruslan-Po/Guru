@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guru/stiles/app_titles.dart';
 
 class SubscriptionWidget extends StatelessWidget {
   final String subscriptionName;
@@ -22,11 +23,10 @@ class SubscriptionWidget extends StatelessWidget {
           colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
         ),
         borderRadius: BorderRadius.circular(40),
-        // border и boxShadow УБРАНЫ!
       ),
       child: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               subscriptionName,
@@ -36,14 +36,7 @@ class SubscriptionWidget extends StatelessWidget {
                 fontSize: 18,
               ),
             ),
-            Text(
-              subscriptionCost,
-              style: TextStyle(
-                color: Colors.amber,
-                fontWeight: FontWeight.w700,
-                fontSize: 24,
-              ),
-            ),
+            Text(subscriptionCost, style: AppTextStyles.cost),
           ],
         ),
       ),

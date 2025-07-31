@@ -72,4 +72,33 @@ class AppTextStyles {
       ),
     ],
   );
+
+  static final TextStyle subscripeDescriptionText = GoogleFonts.raleway(
+    fontSize: 30,
+    color: const Color.fromARGB(255, 213, 193, 133),
+    shadows: [
+      Shadow(
+        offset: Offset(0, 0),
+        blurRadius: 10.0,
+        color: const Color.fromARGB(255, 213, 193, 133),
+      ),
+    ],
+  );
+
+  static final TextStyle cost = GoogleFonts.markaziText(
+    fontSize: 30,
+    color: const Color.fromARGB(255, 213, 193, 133),
+    shadows: [
+      Shadow(
+        offset: Offset(0, 0),
+        blurRadius: 10.0,
+        color: const Color.fromARGB(255, 213, 193, 133),
+      ),
+    ],
+  );
+
+  static final TextStyle disclaimer = GoogleFonts.raleway(
+    fontSize: 15,
+    color: const Color(0xFFE2E7EF),
+  );
 }
