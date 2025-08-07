@@ -6,6 +6,7 @@ import 'package:guru/screens/voices/flow.dart';
 import 'package:guru/screens/voices/logic.dart';
 import 'package:guru/screens/voices/poetry.dart';
 import 'package:guru/screens/voices/silence.dart';
+import 'package:guru/services/premium_gate.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -13,14 +14,14 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      initialRoute: Routes.subscription,
+      initialRoute: Routes.home,
       routes: {
-        Routes.home: (context) => Home(),
-        Routes.silence: (context) => SilenceVoice(),
-        Routes.flow: (context) => FlowVoice(),
-        Routes.poetry: (context) => PoetryVoice(),
-        Routes.logic: (context) => LogicVoice(),
-        Routes.subscription: (context) => Subscription(),
+        Routes.home: (context) => const Home(),
+        Routes.silence: (context) => PremiumGate(child: SilenceVoice()),
+        Routes.flow: (context) => PremiumGate(child: FlowVoice()),
+        Routes.poetry: (context) => PremiumGate(child: PoetryVoice()),
+        Routes.logic: (context) => PremiumGate(child: LogicVoice()),
+        Routes.subscription: (context) => const Subscription(),
       },
     );
   }

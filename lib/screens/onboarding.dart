@@ -34,7 +34,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withAlpha(200),
       child: Center(
         child: Container(
           width: 340,

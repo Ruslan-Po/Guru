@@ -120,7 +120,6 @@ class _FlowVoiceState extends State<FlowVoice> {
 
   void _onSpeechStatus(String status) {
     debugPrint('Speech status: $status');
-    // Можно просто обновить состояние для UI, если надо
     if ((status == 'done' || status == 'notListening') &&
         mounted &&
         !_isDisposed) {
@@ -203,7 +202,6 @@ class _FlowVoiceState extends State<FlowVoice> {
       fadeIn = Duration.zero;
       fadeOut = Duration.zero;
     }
-
     return FadeSwitchingText(
       text: textToShow,
       style: style,
@@ -252,7 +250,7 @@ class _FlowVoiceState extends State<FlowVoice> {
                   IconButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _vibrate();
+                      //_vibrate();
                     },
                     icon: Image.asset(
                       'assets/icons/prev.png',
@@ -289,10 +287,9 @@ class _FlowVoiceState extends State<FlowVoice> {
                     ),
                   ),
 
-                  // Кнопка Обновить (выровнена по верхнему краю)
                   IconButton(
                     onPressed: () {
-                      _vibrate();
+                      //_vibrate();
                       _regenerateAiAnswer();
                     },
                     icon: Image.asset(

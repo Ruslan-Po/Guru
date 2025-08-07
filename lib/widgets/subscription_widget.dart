@@ -17,7 +17,7 @@ class SubscriptionWidget extends StatelessWidget {
       height: 200,
       width: 130,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,
           colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
@@ -30,13 +30,19 @@ class SubscriptionWidget extends StatelessWidget {
           children: [
             Text(
               subscriptionName,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
+              textAlign: TextAlign.center,
             ),
-            Text(subscriptionCost, style: AppTextStyles.cost),
+            const SizedBox(height: 12),
+            Text(
+              subscriptionCost.isNotEmpty ? subscriptionCost : '...',
+              style: AppTextStyles.cost,
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

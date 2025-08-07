@@ -251,7 +251,7 @@ class _LogicVoiceState extends State<LogicVoice> {
                   IconButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _vibrate();
+                      // _vibrate();
                     },
                     icon: Image.asset(
                       'assets/icons/prev.png',
@@ -290,7 +290,7 @@ class _LogicVoiceState extends State<LogicVoice> {
                   // Обновить
                   IconButton(
                     onPressed: () {
-                      _vibrate();
+                      //_vibrate();
                       _regenerateAiAnswer();
                     },
                     icon: Image.asset(

@@ -5,6 +5,7 @@ import 'package:guru/screens/onboarding.dart';
 import 'package:guru/stiles/app_titles.dart';
 import 'package:guru/voice_descriptions.dart';
 import 'package:guru/widgets/main_round.dart';
+import 'package:guru/widgets/subscribtion_icon_widget.dart';
 import 'package:guru/widgets/voice_round.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
@@ -168,7 +169,7 @@ class _HomeState extends State<Home> {
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _activeIndex = i);
-                            _vibrate();
+                            //_vibrate();
                           },
                           onDoubleTap: () =>
                               _navigationByIndex(context, _activeIndex),
@@ -199,12 +200,21 @@ class _HomeState extends State<Home> {
                         child: VoiceRound(voiceTitle: "Confirm"),
                       ),
                     ),
+                    Positioned(
+                      right: screenSize.width * 0.83,
+                      bottom: screenSize.height * 0.89,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, Routes.subscription);
+                        },
+                        child: SubscribtionIconWidget(),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-          // --- Overlay — поверх всего ---
           if (_showOnboarding) OnboardingOverlay(onFinish: _finishOnboarding),
         ],
       ),
