@@ -33,7 +33,7 @@ class SubscriptionWidget extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 15,
               ),
               textAlign: TextAlign.center,
             ),

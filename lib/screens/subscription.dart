@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:guru/stiles/app_titles.dart';
 import 'package:guru/widgets/subscription_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 class Subscription extends StatefulWidget {
   const Subscription({super.key});
@@ -24,36 +26,32 @@ class _SubscriptionState extends State<Subscription> {
 
   StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
 
-  // Порядок показа продуктов
-  final List<String> productOrder = [
+  final List<String> productOrder = const [
     'guru_weekly',
     'guru_monthly',
     'guru_quarterly',
   ];
 
-  final Map<String, String> productTitles = {
+  final Map<String, String> productTitles = const {
     'guru_weekly': 'Weekly',
     'guru_monthly': 'Monthly',
     'guru_quarterly': 'Quarterly',
   };
 
-  final Map<String, String> productImages = {
+  final Map<String, String> productImages = const {
     'guru_weekly': 'assets/subscroption_icons/weekly.png',
     'guru_monthly': 'assets/subscroption_icons/monthly.png',
     'guru_quarterly': 'assets/subscroption_icons/quarterly.png',
   };
 
-  final Map<String, String> productDescriptions = {
-    'guru_weekly': 'Weekly access to Guru voice',
-    'guru_monthly': 'Monthly access to Guru voice',
-    'guru_quarterly': 'Quarterly access to Guru voice',
+  final Map<String, String> productDescriptions = const {
+    'guru_weekly': 'Full access for 1 week',
+    'guru_monthly': 'Full access for 1 month',
+    'guru_quarterly': 'Full access for 3 months',
   };
 
-  // --- Анти‑спам для SnackBar ---
   DateTime _lastSnackAt = DateTime.fromMillisecondsSinceEpoch(0);
   String? _lastSnackMsg;
-
-  // --- Анти‑дубликаты обработок покупок (некоторые стора присылают одно и то же несколько раз) ---
   final Set<String> _handledPurchaseIds = {};
 
   @override
@@ -74,6 +72,7 @@ class _SubscriptionState extends State<Subscription> {
   @override
   void dispose() {
     _purchaseSub?.cancel();
+    _isProcessing = false; // ✅ сброс при закрытии экрана
     super.dispose();
   }
 
@@ -93,11 +92,10 @@ class _SubscriptionState extends State<Subscription> {
       debugPrint('Not found product IDs: ${response.notFoundIDs}');
     }
 
-    // Сортируем по заданному порядку + добавляем неожиданные хвостом
-    final map = {for (var p in response.productDetails) p.id: p};
+    final byId = {for (final p in response.productDetails) p.id: p};
     final ordered = <ProductDetails>[
       for (final id in productOrder)
-        if (map[id] != null) map[id]!,
+        if (byId[id] != null) byId[id]!,
     ];
     for (final p in response.productDetails) {
       if (!ordered.any((e) => e.id == p.id)) ordered.add(p);
@@ -123,20 +121,41 @@ class _SubscriptionState extends State<Subscription> {
     if (mounted) setState(() => _isProcessing = v);
   }
 
-  void _buy(ProductDetails product) {
+  void _buy(ProductDetails product) async {
     final param = PurchaseParam(productDetails: product);
     _setProcessing(true);
-    _iap.buyNonConsumable(purchaseParam: param);
+    try {
+      _iap.buyNonConsumable(purchaseParam: param);
+    } finally {
+      _setProcessing(false); // ✅ сброс даже если покупка неудачная
+    }
   }
 
   Future<void> _restorePurchases() async {
     _showSnack('Restoring purchases...');
     _setProcessing(true);
-    await _iap.restorePurchases();
-    // Результаты придут в _handlePurchaseUpdates
+
+    try {
+      if (Platform.isIOS) {
+        final skAddition = _iap
+            .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+        await skAddition.sync();
+        await skAddition.refreshPurchaseVerificationData();
+      }
+      await _iap.restorePurchases();
+      await Future.delayed(const Duration(seconds: 4));
+
+      if (!_isPremium) {
+        _showSnack('No active purchases to restore.');
+      }
+    } catch (e) {
+      debugPrint('Restore error: $e');
+      _showSnack('Restore failed. Please try again.');
+    } finally {
+      _setProcessing(false); // ✅ сброс в любом случае
+    }
   }
 
-  // Получаем "стабильный" идентификатор покупки, чтобы отсекать дубли
   String? _stablePurchaseId(PurchaseDetails p) {
     return p.purchaseID?.isNotEmpty == true
         ? p.purchaseID
@@ -147,7 +166,7 @@ class _SubscriptionState extends State<Subscription> {
 
   bool _wasHandled(PurchaseDetails p) {
     final id = _stablePurchaseId(p);
-    if (id == null) return false; // не можем отфильтровать — обработаем
+    if (id == null) return false;
     if (_handledPurchaseIds.contains(id)) return true;
     _handledPurchaseIds.add(id);
     return false;
@@ -155,52 +174,42 @@ class _SubscriptionState extends State<Subscription> {
 
   void _handlePurchaseUpdates(List<PurchaseDetails> purchases) async {
     var hasPremium = _isPremium;
-
     bool anyRestored = false;
     bool anyPurchased = false;
     bool anyCanceled = false;
     String? firstError;
 
     for (final purchase in purchases) {
-      // фильтр от повторной обработки
       if (_wasHandled(purchase)) continue;
 
       switch (purchase.status) {
         case PurchaseStatus.pending:
           _setProcessing(true);
           break;
-
         case PurchaseStatus.error:
           _setProcessing(false);
           firstError ??= purchase.error?.message ?? 'Unknown error';
           break;
-
         case PurchaseStatus.canceled:
           _setProcessing(false);
           anyCanceled = true;
           break;
-
         case PurchaseStatus.purchased:
           anyPurchased = true;
           hasPremium = true;
           if (purchase.pendingCompletePurchase) {
             try {
               await _iap.completePurchase(purchase);
-            } catch (e) {
-              debugPrint('completePurchase error: $e');
-            }
+            } catch (_) {}
           }
           break;
-
         case PurchaseStatus.restored:
           anyRestored = true;
           hasPremium = true;
           if (purchase.pendingCompletePurchase) {
             try {
               await _iap.completePurchase(purchase);
-            } catch (e) {
-              debugPrint('completePurchase error: $e');
-            }
+            } catch (_) {}
           }
           break;
       }
@@ -209,7 +218,6 @@ class _SubscriptionState extends State<Subscription> {
     await _savePremiumStatus(hasPremium);
     _setProcessing(false);
 
-    // Ровно один SnackBar по приоритету
     if (firstError != null) {
       _showSnack('Purchase failed: $firstError');
     } else if (anyCanceled) {
@@ -222,8 +230,6 @@ class _SubscriptionState extends State<Subscription> {
       _showSnack('Thanks! Premium is active.');
     }
   }
-
-  List<ProductDetails> get orderedProducts => _products;
 
   Future<void> _launchPrivacyPolicy() async {
     final url = Uri.parse('https://ruslan-po.github.io/guru-privacy-policy');
@@ -239,33 +245,40 @@ class _SubscriptionState extends State<Subscription> {
 
   void _showSnack(String msg, {Duration dedupe = const Duration(seconds: 2)}) {
     if (!mounted) return;
-
     final now = DateTime.now();
-    if (_lastSnackMsg == msg && now.difference(_lastSnackAt) < dedupe) {
-      return; // не спамим одинаковыми сообщениями подряд
-    }
-
+    if (_lastSnackMsg == msg && now.difference(_lastSnackAt) < dedupe) return;
     _lastSnackMsg = msg;
     _lastSnackAt = now;
-
     final messenger = ScaffoldMessenger.of(context);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  String _periodLabel(String id) {
+    switch (id) {
+      case 'guru_weekly':
+        return 'per week';
+      case 'guru_monthly':
+        return 'per month';
+      case 'guru_quarterly':
+        return 'per 3 months';
+      default:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double buttonMaxWidth = screenWidth * 0.6;
-    final productsToShow = orderedProducts;
+    final double buttonMaxWidth = screenWidth * 0.8;
+    final productsToShow = _products;
 
     if (!_iapAvailable) {
       return const Scaffold(
         body: Center(child: Text('In-App Purchases are not available')),
       );
     }
-
     if (productsToShow.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -279,114 +292,91 @@ class _SubscriptionState extends State<Subscription> {
         child: Stack(
           children: [
             Container(
-              alignment: Alignment.center,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomLeft,
                   end: Alignment.topRight,
-                  colors: [Color.fromARGB(255, 0, 0, 0), Color(0xFF4D574E)],
+                  colors: [Color(0xFF000000), Color(0xFF4D574E)],
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  const SizedBox(height: 20),
-                  if (_isPremium)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 12),
-                      child: Text(
-                        'Premium is active!',
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          if (_isPremium)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: Text(
+                                'Premium is active',
+                                style: TextStyle(
+                                  color: Color.fromARGB(200, 255, 193, 7),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Unlock Guru Premium',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color.fromARGB(177, 255, 193, 7),
-                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(opacity: animation, child: child),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Access all 4 modes — Logic, Poetry, Silence & Flow — without limits.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFFCFE9E0),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          _BenefitChip(label: 'Unlimited Q&A'),
+                          SizedBox(width: 8),
+                          _BenefitChip(label: 'All 4 modes'),
+                          SizedBox(width: 8),
+                          _BenefitChip(label: 'No ads'),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
                           child: Image.asset(
                             productImages[activeProduct.id] ??
                                 'assets/transparent.png',
+                            key: ValueKey(activeProduct.id),
                             scale: 5,
-                            key: ValueKey<String>(activeProduct.id),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      '* The final price may differ and will be displayed on the payment sheet due to local taxes or currency conversion.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Color.fromARGB(228, 163, 239, 224),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: _launchPrivacyPolicy,
-                        child: Text(
-                          'Privacy Policy',
-                          style: AppTextStyles.disclaimer.copyWith(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.blue,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      GestureDetector(
-                        onTap: _launchTermsofUse,
-                        child: Text(
-                          'Terms of Use',
-                          style: AppTextStyles.disclaimer.copyWith(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.blue,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: _restorePurchases,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 12,
-                          ),
-                          minimumSize: const Size(0, 24),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Restore Purchases',
-                          style: AppTextStyles.disclaimer.copyWith(
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.blue,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 14),
                       SizedBox(
-                        height: 150,
+                        height: 160,
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: List.generate(productsToShow.length, (i) {
                             final product = productsToShow[i];
@@ -396,37 +386,21 @@ class _SubscriptionState extends State<Subscription> {
                                 onTap: () => setState(() => _activeIndex = i),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6.0,
-                                    vertical: 8.0,
+                                    horizontal: 6,
+                                    vertical: 8,
                                   ),
                                   child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 250),
+                                    duration: const Duration(milliseconds: 200),
                                     padding: const EdgeInsets.all(2),
                                     decoration: BoxDecoration(
                                       color: Colors.transparent,
                                       borderRadius: BorderRadius.circular(44),
                                       border: Border.all(
                                         color: isActive
-                                            ? const Color.fromARGB(
-                                                255,
-                                                213,
-                                                193,
-                                                133,
-                                              )
+                                            ? const Color(0xFFD5C185)
                                             : Colors.transparent,
                                         width: 3,
                                       ),
-                                      boxShadow: isActive
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.amber.withAlpha(
-                                                  100,
-                                                ),
-                                                blurRadius: 13,
-                                                spreadRadius: 6,
-                                              ),
-                                            ]
-                                          : [],
                                     ),
                                     child: SubscriptionWidget(
                                       subscriptionName:
@@ -441,66 +415,78 @@ class _SubscriptionState extends State<Subscription> {
                           }),
                         ),
                       ),
-                    ],
-                  ),
-                  // Кнопки навигации + CTA
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Image.asset(
-                          'assets/icons/prev.png',
-                          scale: 15,
-                          color: const Color.fromARGB(149, 255, 255, 255),
+                      const SizedBox(height: 6),
+                      Text(
+                        productDescriptions[activeProduct.id] ??
+                            activeProduct.description,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: buttonMaxWidth),
-                        child: GestureDetector(
-                          onTap: _isProcessing
-                              ? null
-                              : () {
-                                  final product =
-                                      productsToShow[fixedActiveIndex];
-                                  _buy(product);
-                                },
-                          child: Opacity(
-                            opacity: _isProcessing ? 0.6 : 1.0,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth < 400 ? 15 : 40,
-                                vertical: 15,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color.fromARGB(167, 247, 226, 251),
-                                    Color.fromARGB(255, 213, 193, 133),
-                                    Color.fromARGB(115, 226, 231, 239),
-                                  ],
+                      const SizedBox(height: 14),
+                      Text(
+                        'Without an active subscription, modes and answers are not available.',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.disclaimer.copyWith(fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: buttonMaxWidth),
+                          child: GestureDetector(
+                            onTap: _isProcessing
+                                ? null
+                                : () => _buy(activeProduct),
+                            child: Opacity(
+                              opacity: _isProcessing ? 0.6 : 1.0,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth < 400 ? 14 : 28,
+                                  vertical: 16,
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 8,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color.fromARGB(167, 247, 226, 251),
+                                      Color(0xFFD5C185),
+                                      Color.fromARGB(115, 226, 231, 239),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: const Center(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'Get a subscription',
-                                    style: TextStyle(
-                                      color: Color.fromARGB(255, 9, 0, 0),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 22,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: false,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Continue ',
+                                        style: TextStyle(
+                                          color: Color(0xFF090000),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                      Text(
+                                        activeProduct.price,
+                                        style: const TextStyle(
+                                          color: Color(0xFF090000),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _periodLabel(activeProduct.id),
+                                        style: const TextStyle(
+                                          color: Color(0xFF090000),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -508,30 +494,58 @@ class _SubscriptionState extends State<Subscription> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Image.asset(
-                          'assets/icons/forw.png',
-                          scale: 15,
-                          color: const Color.fromARGB(149, 255, 255, 255),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: TextButton(
+                          onPressed: _restorePurchases,
+                          child: Text(
+                            'Restore Purchases',
+                            style: AppTextStyles.disclaimer.copyWith(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.blue,
+                            ),
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '3-day free trial for new users. Auto-renews unless canceled at least 24 hours before the end of the period.',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.disclaimer.copyWith(fontSize: 10),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _launchPrivacyPolicy,
+                            child: Text(
+                              'Privacy Policy',
+                              style: AppTextStyles.disclaimer.copyWith(
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.blue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: _launchTermsofUse,
+                            child: Text(
+                              'Terms of Use',
+                              style: AppTextStyles.disclaimer.copyWith(
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.blue,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'Unlimited access to Logic, Poetry, Silence & Flow. 3‑day free trial.'
-                      'Auto‑renewing subscription.',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.disclaimer.copyWith(fontSize: 10),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 1),
-                ],
+                ),
               ),
             ),
             if (_isProcessing)
@@ -541,6 +555,30 @@ class _SubscriptionState extends State<Subscription> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BenefitChip extends StatelessWidget {
+  const _BenefitChip({required this.label});
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0x1AFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x33FFFFFF)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
